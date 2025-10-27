@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Text;
+using OtusBasic1;
 
 bool isWorking = true;
 string? input = string.Empty;
-string name = string.Empty;
+ToDoUser user = null;
 string version = "0.0.2";
 string dateOfCreation = DateTime.Today.ToString("dd.MM.yyyy");
-List<string> tasks = new();
+List<ToDoItem> tasks = new();
 
 int taskCountLimit = 0;
 int taskLengthLimit = 0;
@@ -49,6 +49,10 @@ try
                     HandleShowTasks();
                     break;
 
+                case "/showalltasks":
+                    HandleShowAllTasks();
+                    break;
+
                 case "/removetask":
                     HandleRemoveTask();
                     break;
@@ -61,6 +65,11 @@ try
             if (!string.IsNullOrWhiteSpace(input) && input.Contains("/echo"))
             {
                 HandleEcho();
+            }
+            
+            if (!string.IsNullOrWhiteSpace(input) && input.Contains("/completetask"))
+            {
+                HandleCompleteTask(input.Replace("/completetask ", ""));
             }
         }
         catch (TaskCountLimitException ex)
@@ -101,10 +110,12 @@ void OutputHelp()
                       "/info - информация о программе\n" +
                       "/exit - выход\n" +
                       "/addtask - добавить задачу в список\n" +
-                      "/showtasks - посмотреть список задач\n" +
+                      "/showtasks - посмотреть список активных задач\n" +
+                      "/showalltasks - посмотреть список всех задач\n" +
+                      "/completetask - выполнить задачу с указанным индексом\n" +
                       "/removetask - удалить задачу");
 
-    if (!string.IsNullOrWhiteSpace(name))
+    if (user != null && !string.IsNullOrWhiteSpace(user.TelegramUserName))
         Console.WriteLine("/echo - вывод написанного аргумента");
 
     Console.WriteLine();
@@ -120,11 +131,27 @@ bool HasTasks()
     return tasks.Count != 0;
 }
 
-void ShowTasks()
+void ShowTasks(bool ignoreCompleted = true)
 {
     for (int i = 0; i < tasks.Count; i++)
     {
-        Console.WriteLine($"{i + 1}. {tasks[i]}");
+        StringBuilder stringBuilder = new();
+        stringBuilder.Append($"{i + 1}. ");
+        if (ignoreCompleted)
+        {
+            if(tasks[i].State == ToDoItemState.Completed)
+                continue;
+        }
+        else
+        {
+            stringBuilder.Append($"({tasks[i].State.ToString()}) ");
+        }
+        
+        var task = tasks[i];
+        
+        stringBuilder.Append($"{task.Name} - {task.CreatedAt} - {task.Id}");
+        
+        Console.WriteLine(stringBuilder.ToString());
     }
 
     Console.WriteLine();
@@ -185,15 +212,15 @@ void HandleStart()
 {
     string? enteredName = GetInput("Пожалуйста, введите ваше имя: ");
     ValidateString(enteredName);
-    name = enteredName!;
-    Console.WriteLine($"Привет, {name}! Чем могу помочь?");
+    user = new ToDoUser(enteredName);
+    Console.WriteLine($"Привет, {user.TelegramUserName}! Чем могу помочь?");
     Console.WriteLine();
 }
 
 void HandleHelp()
 {
-    if (!string.IsNullOrWhiteSpace(name))
-        Console.Write($"{name}, ");
+    if (user != null && !string.IsNullOrWhiteSpace(user.TelegramUserName))
+        Console.Write($"{user.TelegramUserName}, ");
     Console.WriteLine("Здравствуйте! Вот ваша инструкция: \n");
     OutputHelp();
 }
@@ -201,8 +228,8 @@ void HandleHelp()
 void HandleInfo()
 {
     OutputInfo();
-    if (!string.IsNullOrWhiteSpace(name))
-        Console.WriteLine($"{name}, спасибо, что вы с нами!\n");
+    if (user != null && !string.IsNullOrWhiteSpace(user.TelegramUserName))
+        Console.WriteLine($"{user.TelegramUserName}, спасибо, что вы с нами!\n");
 }
 
 void HandleAddTask()
@@ -218,10 +245,13 @@ void HandleAddTask()
     if (normalized.Length > taskLengthLimit)
         throw new TaskLengthLimitException(normalized.Length, taskLengthLimit);
 
-    if (tasks.Contains(normalized, StringComparer.OrdinalIgnoreCase))
+    if (tasks.Any(x => x.Name.Equals(normalized, StringComparison.OrdinalIgnoreCase)))
         throw new DuplicateTaskException(normalized);
 
-    tasks.Add(normalized);
+    if (user == null)
+        throw new ArgumentException("Сначала введите имя пользователя, выполнив команду /start!\n");
+
+    tasks.Add(new ToDoItem(user, normalized));
     Console.WriteLine($"Задача \"{normalized}\" добавлена.\n");
 }
 
@@ -233,6 +263,16 @@ void HandleShowTasks()
         return;
     }
     ShowTasks();
+}
+
+void HandleShowAllTasks()
+{
+    if (!HasTasks())
+    {
+        Console.WriteLine("В вашем списке нет задач!\n");
+        return;
+    }
+    ShowTasks(false);
 }
 
 void HandleRemoveTask()
@@ -251,20 +291,30 @@ void HandleRemoveTask()
     RemoveTask(indexBased - 1);
 }
 
+void HandleCompleteTask(string id)
+{
+    var completeTask = tasks.FirstOrDefault(x => x.Id.ToString() == id);
+    if(completeTask == null)
+        throw new ArgumentException($"Не существует задачи с Id {id}");
+
+    completeTask.Complete();
+    Console.WriteLine($"Задача {completeTask.Name} выполнена");
+}
+
 void HandleExit()
 {
     isWorking = false;
-    if (!string.IsNullOrWhiteSpace(name))
-        Console.Write($"{name}, до скорой встречи!");
+    if (user != null && !string.IsNullOrWhiteSpace(user.TelegramUserName))
+        Console.Write($"{user.TelegramUserName}, до скорой встречи!");
 }
 
 void HandleEcho()
 {
-    if (string.IsNullOrWhiteSpace(name))
+    if (user == null || string.IsNullOrWhiteSpace(user.TelegramUserName))
     {
         Console.WriteLine("Команда не доступна. Для доступа введите ваше имя с помощью команды /start");
         return;
     }
 
-    Console.WriteLine(input!.Replace("/echo", "").TrimStart());
+    Console.WriteLine(input.Replace("/echo", "").TrimStart());
 }
