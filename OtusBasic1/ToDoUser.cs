@@ -4,6 +4,7 @@ public class ToDoUser
 {
     public Guid UserId { get; private set; }
     public string TelegramUserName { get; private set; }
+    public long TelegramUserId { get; private set; }
     public DateTime RegisteredAt { get; private set; }
 
     public ToDoUser()
@@ -11,9 +12,10 @@ public class ToDoUser
         Init();
     }
 
-    public ToDoUser(string telegramUserName)
+    public ToDoUser(string telegramUserName, long telegramUserId)
     {
         TelegramUserName = telegramUserName;
+        TelegramUserId = telegramUserId;
         Init();
     }
 
