@@ -8,13 +8,15 @@ public class UpdateHandler : IUpdateHandler
 {
     private readonly IUserService _userService;
     private readonly IToDoService _toDoService;
-    private string version = "0.0.3";
+    private readonly IToDoReportService _reportService;
+    private string version = "0.0.4";
     private string dateOfCreation = DateTime.Today.ToString("dd.MM.yyyy");
 
-    public UpdateHandler(IUserService userService, IToDoService toDoService)
+    public UpdateHandler(IUserService userService, IToDoService toDoService, IToDoReportService reportService)
     {
         _userService = userService;
         _toDoService = toDoService;
+        _reportService = reportService;
     }
 
     public void HandleUpdateAsync(ITelegramBotClient botClient, Update update)
@@ -111,6 +113,24 @@ public class UpdateHandler : IUpdateHandler
                 return;
             }
             
+            if (input.StartsWith("/report"))
+            {
+                var report = _reportService.GetUserStats(user.UserId);
+                botClient.SendMessage(update.Message.Chat, $"Статистика по задачам на {report.generatedAt}. Всего: {report.total}; Звершенных: {report.completed}; Активных: {report.active}");
+                return;
+            }
+            
+            if (input.StartsWith("/find"))
+            {
+                var namePrefix = input.Replace("/find", "").Trim();
+                var tasks = _toDoService.Find(user, namePrefix);
+                var lineTasks = LineTasks(tasks);
+                if (string.IsNullOrWhiteSpace(lineTasks))
+                    lineTasks = $"У вас нет задач, начинающихся на {namePrefix}";
+                botClient.SendMessage(update.Message.Chat, lineTasks);
+                return;
+            }
+            
             botClient.SendMessage(update.Message.Chat, $"У меня нет такой команды. Вот какие есть: {GetHelp()}");
         }
         catch (TaskCountLimitException ex)
@@ -139,7 +159,9 @@ public class UpdateHandler : IUpdateHandler
                "/showtasks - посмотреть список активных задач\n" +
                "/showalltasks - посмотреть список всех задач\n" +
                "/completetask - выполнить задачу с указанным индексом\n" +
-               "/removetask - удалить задачу\n";
+               "/removetask - удалить задачу\n" +
+               "/find - поиск по имени\n" +
+               "/report - составить отчет по задачам\n";
     }
 
     string LineTasks(IReadOnlyList<ToDoItem> tasks, bool showState = true)

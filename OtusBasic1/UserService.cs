@@ -2,20 +2,22 @@
 
 public class UserService : IUserService
 {
-    private readonly Dictionary<long, ToDoUser> _users = new();
+    private readonly IUserRepository _repository;
+
+    public UserService(IUserRepository repository)
+    {
+        _repository = repository;
+    }
     
     public ToDoUser RegisterUser(long telegramUserId, string telegramUserName)
     {
         var user = new ToDoUser(telegramUserName, telegramUserId);
-        _users.Add(telegramUserId, user);
+        _repository.Add(user);
         return user;
     }
 
     public ToDoUser? GetUser(long telegramUserId)
     {
-        if(_users.TryGetValue(telegramUserId, out var user))
-            return user;
-        
-        return null;
+        return _repository.GetUserByTelegramUserId(telegramUserId);
     }
 }

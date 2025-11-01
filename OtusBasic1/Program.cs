@@ -2,9 +2,12 @@
 using OtusBasic1;
 
 ITelegramBotClient botClient = new ConsoleBotClient();
-IUserService userService = new UserService();
-IToDoService toDoService = new ToDoService();
-IUpdateHandler updateHandler = new UpdateHandler(userService, toDoService);
+IUserRepository userRepository = new InMemoryUserRepository();
+IUserService userService = new UserService(userRepository);
+IToDoRepository toDoRepository = new InMemoryToDoRepository();
+IToDoService toDoService = new ToDoService(toDoRepository);
+IToDoReportService reportService = new ToDoReportService(toDoRepository);
+IUpdateHandler updateHandler = new UpdateHandler(userService, toDoService, reportService);
 
 try
 {
