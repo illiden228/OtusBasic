@@ -9,12 +9,12 @@ public class ToDoReportService : IToDoReportService
         _repository = repository;
     }
 
-    public (int total, int completed, int active, DateTime generatedAt) GetUserStats(Guid userId)
+    public async Task<(int total, int completed, int active, DateTime generatedAt)> GetUserStats(Guid userId, CancellationToken ct)
     {
-        var tasks = _repository.GetAllByUserId(userId);
+        var tasks = await _repository.GetAllByUserId(userId, ct);
         var total = tasks.Count();
         int completed = tasks.Count(x => x.State == ToDoItemState.Completed);
-        int active = _repository.CountActive(userId);
+        int active = await _repository.CountActive(userId,ct);
         DateTime generatedAt = DateTime.UtcNow;
         return (total, completed, active, generatedAt);
     }

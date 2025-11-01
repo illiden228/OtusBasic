@@ -2,7 +2,7 @@
 
 public interface IUserRepository
 {
-    ToDoUser? GetUser(Guid userId);
-    ToDoUser? GetUserByTelegramUserId(long telegramUserId);
-    void Add(ToDoUser user);
+    Task<ToDoUser?> GetUser(Guid userId, CancellationToken ct);
+    Task<ToDoUser?> GetUserByTelegramUserId(long telegramUserId, CancellationToken ct);
+    Task Add(ToDoUser user, CancellationToken ct);
 }

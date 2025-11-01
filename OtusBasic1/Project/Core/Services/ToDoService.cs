@@ -12,55 +12,55 @@ public class ToDoService : IToDoService
         _repository = repository;
     }
 
-    public IReadOnlyList<ToDoItem> GetAllByUserId(Guid userId)
+    public async Task<IReadOnlyList<ToDoItem>> GetAllByUserId(Guid userId, CancellationToken ct)
     {
-        return _repository.GetAllByUserId(userId);
+        return await _repository.GetAllByUserId(userId, ct);
     }
 
-    public IReadOnlyList<ToDoItem> GetActiveByUserId(Guid userId)
+    public async Task<IReadOnlyList<ToDoItem>> GetActiveByUserId(Guid userId, CancellationToken ct)
     {
-        return _repository.GetActiveByUserId(userId);
+        return await _repository.GetActiveByUserId(userId, ct);
     }
 
-    public IReadOnlyList<ToDoItem> Find(ToDoUser user, string namePrefix)
+    public async Task<IReadOnlyList<ToDoItem>> Find(ToDoUser user, string namePrefix, CancellationToken ct)
     {
-        return _repository.Find(user.UserId, x => x.Name.StartsWith(namePrefix));
+        return await _repository.Find(user.UserId, x => x.Name.StartsWith(namePrefix), ct);
     }
 
-    public ToDoItem Add(ToDoUser user, string name)
+    public async Task<ToDoItem> Add(ToDoUser user, string name, CancellationToken ct)
     {
         if (string.IsNullOrWhiteSpace(name))
             throw new ArgumentException("Название задачи не может быть пустым. Введите /addtask Название задачи");
         
         if (name.Length > TASK_LENGTH_LIMIT)
             throw new ArgumentException($"Название задачи не должно превышать {TASK_LENGTH_LIMIT}");
-        
-        
-        if (_repository.GetActiveByUserId(user.UserId).Count >= TASK_COUNT_LIMIT)
+
+        var activeUsers = await _repository.GetActiveByUserId(user.UserId, ct);
+        if (activeUsers.Count >= TASK_COUNT_LIMIT)
             throw new ArgumentException($"Количество задач не должно превышать {TASK_COUNT_LIMIT}");
-        
-        
-        if (_repository.ExistsByName(user.UserId, name))
+
+        var existsUser = await _repository.ExistsByName(user.UserId, name, ct);
+        if (existsUser)
             throw new DuplicateTaskException(name);
         
         var newTask = new ToDoItem(user, name);
-        _repository.Add(newTask);
+        await _repository.Add(newTask, ct);
         return newTask;
     }
 
-    public void MarkCompleted(Guid id)
+    public async Task MarkCompleted(Guid id, CancellationToken ct)
     {
-        var completeTask = _repository.Get(id);
+        var completeTask = await _repository.Get(id, ct);
         
         if (completeTask == null)
             throw new ArgumentException($"Не существует задачи с Id {id}");
         
         completeTask.Complete();
-        _repository.Update(completeTask);
+        await _repository.Update(completeTask, ct);
     }
 
-    public void Delete(Guid id)
+    public async Task Delete(Guid id, CancellationToken ct)
     {
-        _repository.Delete(id);
+        await _repository.Delete(id, ct);
     }
 }

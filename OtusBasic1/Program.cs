@@ -1,23 +1,34 @@
 ﻿using Otus.ToDoList.ConsoleBot;
 using OtusBasic1;
 
+using var cts = new CancellationTokenSource();
 ITelegramBotClient botClient = new ConsoleBotClient();
 IUserRepository userRepository = new InMemoryUserRepository();
 IUserService userService = new UserService(userRepository);
 IToDoRepository toDoRepository = new InMemoryToDoRepository();
 IToDoService toDoService = new ToDoService(toDoRepository);
 IToDoReportService reportService = new ToDoReportService(toDoRepository);
-IUpdateHandler updateHandler = new UpdateHandler(userService, toDoService, reportService);
+UpdateHandler updateHandler = new UpdateHandler(userService, toDoService, reportService);
 
 try
 {
-    while (true)
-    {
-        botClient.StartReceiving(updateHandler);
-    }
+    updateHandler.OnHandleUpdateStarted += OnHandleUpdateStartedHandle;
+    updateHandler.OnHandleUpdateCompleted += OnHandleUpdateCompletedHandle;
+
+    botClient.StartReceiving(updateHandler, cts.Token);
 }
-catch (Exception ex)
+finally
 {
-    Console.WriteLine(
-        $"Произошла непредвиденная ошибка: {ex.GetType().FullName}\nMessage: {ex.Message}\nStackTrace: {ex.StackTrace}\nInnerException: {ex.InnerException}");
+    updateHandler.OnHandleUpdateStarted -= OnHandleUpdateStartedHandle;
+    updateHandler.OnHandleUpdateCompleted -= OnHandleUpdateCompletedHandle;
+} 
+
+void OnHandleUpdateStartedHandle(string message)
+{
+    Console.WriteLine($"Началась обработка сообщения '{message}'");
+}
+
+void OnHandleUpdateCompletedHandle(string message)
+{
+    Console.WriteLine($"Закончилась обработка сообщения '{message}'");
 }

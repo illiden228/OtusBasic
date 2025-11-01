@@ -6,11 +6,16 @@ namespace OtusBasic1;
 
 public class UpdateHandler : IUpdateHandler
 {
+    public delegate void MessageEventHandler(string message);
+    
     private readonly IUserService _userService;
     private readonly IToDoService _toDoService;
     private readonly IToDoReportService _reportService;
     private string version = "0.0.4";
     private string dateOfCreation = DateTime.Today.ToString("dd.MM.yyyy");
+    
+    public event MessageEventHandler? OnHandleUpdateStarted;
+    public event MessageEventHandler? OnHandleUpdateCompleted;
 
     public UpdateHandler(IUserService userService, IToDoService toDoService, IToDoReportService reportService)
     {
@@ -18,137 +23,134 @@ public class UpdateHandler : IUpdateHandler
         _toDoService = toDoService;
         _reportService = reportService;
     }
-
-    public void HandleUpdateAsync(ITelegramBotClient botClient, Update update)
+    
+    public async Task HandleUpdateAsync(ITelegramBotClient botClient, Update update, CancellationToken ct)
     {
         try
         {
             string input = update.Message.Text;
-            var user = _userService.GetUser(update.Message.From.Id);
+            var user = await _userService.GetUser(update.Message.From.Id, ct);
 
+            OnHandleUpdateStarted?.Invoke(input);
             if (input.StartsWith("/start"))
             {
                 if (user == null)
                 {
-                    user = _userService.RegisterUser(update.Message.From.Id, update.Message.From.Username ?? "User");
-                    botClient.SendMessage(update.Message.Chat,
-                        $"Регистрация пройдена! Добро пожаловать, {user.TelegramUserName}!");
+                    user = await _userService.RegisterUser(update.Message.From.Id, update.Message.From.Username ?? "User", ct);
+                    await botClient.SendMessage(update.Message.Chat,
+                        $"Регистрация пройдена! Добро пожаловать, {user.TelegramUserName}!", ct);
                 }
                 else
                 {
-                    botClient.SendMessage(update.Message.Chat, $"Регистрация уже пройдена, {user.TelegramUserName}!");
+                    await botClient.SendMessage(update.Message.Chat, $"Регистрация уже пройдена, {user.TelegramUserName}!", ct);
                 }
 
-                botClient.SendMessage(update.Message.Chat, $"Список команд: {GetHelp()}");
+                await botClient.SendMessage(update.Message.Chat, $"Список команд: {GetHelp()}", ct);
+                OnHandleUpdateCompleted?.Invoke(input);
                 return;
             }
 
             if (user == null)
             {
-                botClient.SendMessage(update.Message.Chat, $"Здравствуйте! Введите /start, чтобы начать");
+                await botClient.SendMessage(update.Message.Chat, $"Здравствуйте! Введите /start, чтобы начать", ct);
+                OnHandleUpdateCompleted?.Invoke(input);
                 return;
             }
 
             if (input.StartsWith("/help"))
             {
-                botClient.SendMessage(update.Message.Chat, GetHelp());
-                return;
+                await botClient.SendMessage(update.Message.Chat, GetHelp(), ct);
             }
-
-            if (input.StartsWith("/info"))
+            else if (input.StartsWith("/info"))
             {
-                botClient.SendMessage(update.Message.Chat, $"Программа создана {dateOfCreation}\nТекущая версия: v.{version}\n");
-                return;
+                await botClient.SendMessage(update.Message.Chat, $"Программа создана {dateOfCreation}\nТекущая версия: v.{version}\n", ct);
             }
-
-            if (input.StartsWith("/addtask"))
+            else if (input.StartsWith("/addtask"))
             {
                 var taskName = input.Replace("/addtask", "").Trim();
-                var task = _toDoService.Add(user, taskName);
-                botClient.SendMessage(update.Message.Chat, $"Создана новая задача \"{task.Name}\"");
-                return;
+                var task = await _toDoService.Add(user, taskName, ct);
+                await botClient.SendMessage(update.Message.Chat, $"Создана новая задача \"{task.Name}\"", ct);
             }
-
-            if (input.StartsWith("/showtasks"))
+            else if (input.StartsWith("/showtasks"))
             {
-                var activeTasks = _toDoService.GetActiveByUserId(user.UserId);
+                var activeTasks = await _toDoService.GetActiveByUserId(user.UserId, ct);
                 var tasks = LineTasks(activeTasks, false);
                 if (string.IsNullOrWhiteSpace(tasks))
                     tasks = "У вас нет задач";
-                botClient.SendMessage(update.Message.Chat, tasks);
-                return;
+                await botClient.SendMessage(update.Message.Chat, tasks, ct);
             }
-
-            if (input.StartsWith("/showalltasks"))
+            else if (input.StartsWith("/showalltasks"))
             {
-                var allTasks = _toDoService.GetAllByUserId(user.UserId);
+                var allTasks = await _toDoService.GetAllByUserId(user.UserId, ct);
                 var tasks = LineTasks(allTasks);
                 if (string.IsNullOrWhiteSpace(tasks))
                     tasks = "У вас нет задач";
-                botClient.SendMessage(update.Message.Chat, tasks);
-                return;
+                await botClient.SendMessage(update.Message.Chat, tasks, ct);
             }
-
-            if (input.StartsWith("/removetask"))
+            else if (input.StartsWith("/removetask"))
             {
                 var taskId = input.Replace("/removetask", "").Trim();
                 if (!Guid.TryParse(taskId, out Guid taskGuid))
                 {
                     throw new ArgumentException("Некорректный Id задачи");
                 }
-                _toDoService.Delete(taskGuid);
-                botClient.SendMessage(update.Message.Chat, $"Удалена задача \"{taskId}\"");
-                return;
+                await _toDoService.Delete(taskGuid, ct);
+                await botClient.SendMessage(update.Message.Chat, $"Удалена задача \"{taskId}\"", ct);
             }
-
-            if (input.StartsWith("/completetask"))
+            else if (input.StartsWith("/completetask"))
             {
                 var taskId = input.Replace("/completetask", "").Trim();
                 if (!Guid.TryParse(taskId, out Guid taskGuid))
                 {
                     throw new ArgumentException("Некорректный Id задачи");
                 }
-                _toDoService.MarkCompleted(taskGuid);
-                botClient.SendMessage(update.Message.Chat, $"Задача \"{taskId}\" выполнена");
-                return;
+                await _toDoService.MarkCompleted(taskGuid, ct);
+                await botClient.SendMessage(update.Message.Chat, $"Задача \"{taskId}\" выполнена", ct);
             }
-            
-            if (input.StartsWith("/report"))
+            else if (input.StartsWith("/report"))
             {
-                var report = _reportService.GetUserStats(user.UserId);
-                botClient.SendMessage(update.Message.Chat, $"Статистика по задачам на {report.generatedAt}. Всего: {report.total}; Звершенных: {report.completed}; Активных: {report.active}");
-                return;
+                var report = await _reportService.GetUserStats(user.UserId, ct);
+                await botClient.SendMessage(update.Message.Chat, $"Статистика по задачам на {report.generatedAt}. Всего: {report.total}; Звершенных: {report.completed}; Активных: {report.active}", ct);
             }
-            
-            if (input.StartsWith("/find"))
+            else if (input.StartsWith("/find"))
             {
                 var namePrefix = input.Replace("/find", "").Trim();
-                var tasks = _toDoService.Find(user, namePrefix);
+                var tasks = await _toDoService.Find(user, namePrefix, ct);
                 var lineTasks = LineTasks(tasks);
                 if (string.IsNullOrWhiteSpace(lineTasks))
                     lineTasks = $"У вас нет задач, начинающихся на {namePrefix}";
-                botClient.SendMessage(update.Message.Chat, lineTasks);
-                return;
+                await botClient.SendMessage(update.Message.Chat, lineTasks, ct);
+            }
+            else
+            {
+                await botClient.SendMessage(update.Message.Chat, $"У меня нет такой команды. Вот какие есть: {GetHelp()}", ct);
             }
             
-            botClient.SendMessage(update.Message.Chat, $"У меня нет такой команды. Вот какие есть: {GetHelp()}");
+            OnHandleUpdateCompleted?.Invoke(input);
         }
         catch (TaskCountLimitException ex)
         {
-            botClient.SendMessage(update.Message.Chat, ex.Message);
+            await botClient.SendMessage(update.Message.Chat, ex.Message, ct);
         }
         catch (TaskLengthLimitException ex)
         {
-            botClient.SendMessage(update.Message.Chat, ex.Message);
+            await botClient.SendMessage(update.Message.Chat, ex.Message, ct);
         }
         catch (DuplicateTaskException ex)
         {
-            botClient.SendMessage(update.Message.Chat, ex.Message);
+            await botClient.SendMessage(update.Message.Chat, ex.Message, ct);
         }
         catch (ArgumentException ex)
         {
-            botClient.SendMessage(update.Message.Chat, ex.Message);
+            await botClient.SendMessage(update.Message.Chat, ex.Message, ct);
         }
+    }
+
+    public Task HandleErrorAsync(ITelegramBotClient botClient, Exception ex, CancellationToken ct)
+    {
+        Console.WriteLine(
+            $"Произошла непредвиденная ошибка: {ex.GetType().FullName}\nMessage: {ex.Message}\nStackTrace: {ex.StackTrace}\nInnerException: {ex.InnerException}");
+        return Task.CompletedTask;
     }
 
     string GetHelp()
