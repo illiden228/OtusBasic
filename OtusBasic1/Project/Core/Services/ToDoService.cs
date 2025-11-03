@@ -1,4 +1,8 @@
-﻿namespace OtusBasic1;
+﻿using OtusBasic1.Project.Core.DataAccess;
+using OtusBasic1.Project.Core.Entities;
+using OtusBasic1.Project.Core.Exceptions;
+
+namespace OtusBasic1.Project.Core.Services;
 
 public class ToDoService : IToDoService
 {

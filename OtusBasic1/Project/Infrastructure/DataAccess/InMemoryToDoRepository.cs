@@ -1,57 +1,70 @@
-﻿namespace OtusBasic1;
+﻿using OtusBasic1.Project.Core.DataAccess;
+using OtusBasic1.Project.Core.Entities;
+
+namespace OtusBasic1.Project.Infrastructure.DataAccess;
 
 public class InMemoryToDoRepository : IToDoRepository
 {
     private readonly List<ToDoItem> _tasks = new();
     
-    public async Task<IReadOnlyList<ToDoItem>> GetAllByUserId(Guid userId, CancellationToken ct)
+    public Task<IReadOnlyList<ToDoItem>> GetAllByUserId(Guid userId, CancellationToken ct)
     {
-        return _tasks.Where(x => x.User.UserId == userId).ToList();
+        var result = _tasks.Where(x => x.User.UserId == userId).ToList();
+        return Task.FromResult<IReadOnlyList<ToDoItem>>(result);
     }
 
-    public async Task<IReadOnlyList<ToDoItem>> GetActiveByUserId(Guid userId, CancellationToken ct)
+    public Task<IReadOnlyList<ToDoItem>> GetActiveByUserId(Guid userId, CancellationToken ct)
     {
-        return _tasks.Where(x => x.User.UserId == userId && x.State == ToDoItemState.Active)
-                .Select(x => x.Copy())
-                .ToList();
+        var result = _tasks.Where(x => x.User.UserId == userId && x.State == ToDoItemState.Active)
+                                    .Select(x => x.Copy())
+                                    .ToList();
+        return Task.FromResult<IReadOnlyList<ToDoItem>>(result);
     }
 
-    public async Task<ToDoItem?> Get(Guid id, CancellationToken ct)
+    public Task<ToDoItem?> Get(Guid id, CancellationToken ct)
     {
-        return _tasks.FirstOrDefault(x => x.Id == id)?.Copy();
+        var result = _tasks.FirstOrDefault(x => x.Id == id)?.Copy();
+        return Task.FromResult(result);
     }
 
-    public async Task Add(ToDoItem item, CancellationToken ct)
+    public Task Add(ToDoItem item, CancellationToken ct)
     {
         _tasks.Add(item.Copy());
+        return Task.CompletedTask;
     }
 
-    public async Task Update(ToDoItem item, CancellationToken ct)
+    public Task Update(ToDoItem item, CancellationToken ct)
     {
         var index = _tasks.FindIndex(x => x.Id == item.Id);
         _tasks[index] = item.Copy();
+        return Task.CompletedTask;
     }
 
-    public async Task Delete(Guid id, CancellationToken ct)
+    public Task Delete(Guid id, CancellationToken ct)
     {
         _tasks.RemoveAll(x => x.Id == id);
+        return Task.CompletedTask;
     }
 
-    public async Task<bool> ExistsByName(Guid userId, string name, CancellationToken ct)
+    public Task<bool> ExistsByName(Guid userId, string name, CancellationToken ct)
     {
-        return _tasks.Any(x => x.User.UserId == userId && x.Name == name);
+        var result = _tasks.Any(x => x.User.UserId == userId && x.Name == name);
+        return Task.FromResult(result);
     }
 
-    public async Task<int> CountActive(Guid userId, CancellationToken ct)
+    public Task<int> CountActive(Guid userId, CancellationToken ct)
     {
-        return _tasks.Count(x => x.User.UserId == userId && x.State == ToDoItemState.Active);
+        var result = _tasks.Count(x => x.User.UserId == userId && x.State == ToDoItemState.Active);
+        return Task.FromResult(result);
     }
 
-    public async Task<IReadOnlyList<ToDoItem>> Find(Guid userId, Func<ToDoItem, bool> predicate, CancellationToken ct)
+    public Task<IReadOnlyList<ToDoItem>> Find(Guid userId, Func<ToDoItem, bool> predicate, CancellationToken ct)
     {
-        return _tasks.Where(x => x.User.UserId == userId)
-                .Where(predicate)
-                .Select(x => x.Copy())
-                .ToList();
+        
+        var result = _tasks.Where(x => x.User.UserId == userId)
+                                        .Where(predicate)
+                                        .Select(x => x.Copy())
+                                        .ToList();
+        return Task.FromResult<IReadOnlyList<ToDoItem>>(result);
     }
 }

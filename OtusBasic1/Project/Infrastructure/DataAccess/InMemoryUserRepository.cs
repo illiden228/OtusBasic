@@ -1,21 +1,27 @@
-﻿namespace OtusBasic1;
+﻿using OtusBasic1.Project.Core.DataAccess;
+using OtusBasic1.Project.Core.Entities;
+
+namespace OtusBasic1.Project.Infrastructure.DataAccess;
 
 public class InMemoryUserRepository : IUserRepository
 {
-    private readonly List<ToDoUser> users = new();
+    private readonly List<ToDoUser> _users = new();
     
-    public async Task<ToDoUser?> GetUser(Guid userId, CancellationToken ct)
+    public Task<ToDoUser?> GetUser(Guid userId, CancellationToken ct)
     {
-        return users.FirstOrDefault(x => x.UserId == userId);
+        var result = _users.FirstOrDefault(x => x.UserId == userId);
+        return Task.FromResult(result);
     }
 
-    public async Task<ToDoUser?> GetUserByTelegramUserId(long telegramUserId, CancellationToken ct)
+    public Task<ToDoUser?> GetUserByTelegramUserId(long telegramUserId, CancellationToken ct)
     {
-        return users.FirstOrDefault(x => x.TelegramUserId == telegramUserId);
+        var result = _users.FirstOrDefault(x => x.TelegramUserId == telegramUserId);
+        return Task.FromResult(result);
     }
 
-    public async Task Add(ToDoUser user, CancellationToken ct)
+    public Task Add(ToDoUser user, CancellationToken ct)
     {
-        users.Add(user);
+        _users.Add(user);
+        return Task.CompletedTask;
     }
 }

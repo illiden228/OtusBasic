@@ -1,5 +1,8 @@
 ﻿using Otus.ToDoList.ConsoleBot;
-using OtusBasic1;
+using OtusBasic1.Project.Core.DataAccess;
+using OtusBasic1.Project.Core.Services;
+using OtusBasic1.Project.Infrastructure.DataAccess;
+using OtusBasic1.Project.TelegramBot;
 
 using var cts = new CancellationTokenSource();
 ITelegramBotClient botClient = new ConsoleBotClient();

@@ -1,8 +1,11 @@
 ﻿using System.Text;
 using Otus.ToDoList.ConsoleBot;
 using Otus.ToDoList.ConsoleBot.Types;
+using OtusBasic1.Project.Core.Entities;
+using OtusBasic1.Project.Core.Exceptions;
+using OtusBasic1.Project.Core.Services;
 
-namespace OtusBasic1;
+namespace OtusBasic1.Project.TelegramBot;
 
 public class UpdateHandler : IUpdateHandler
 {

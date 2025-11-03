@@ -1,4 +1,4 @@
-﻿namespace OtusBasic1;
+﻿namespace OtusBasic1.Project.Core.Entities;
 
 public enum ToDoItemState
 {

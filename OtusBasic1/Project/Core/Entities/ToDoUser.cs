@@ -1,4 +1,4 @@
-﻿namespace OtusBasic1;
+﻿namespace OtusBasic1.Project.Core.Entities;
 
 public class ToDoUser
 {
@@ -6,11 +6,6 @@ public class ToDoUser
     public string TelegramUserName { get; private set; }
     public long TelegramUserId { get; private set; }
     public DateTime RegisteredAt { get; private set; }
-
-    public ToDoUser()
-    {
-        Init();
-    }
 
     public ToDoUser(string telegramUserName, long telegramUserId)
     {
