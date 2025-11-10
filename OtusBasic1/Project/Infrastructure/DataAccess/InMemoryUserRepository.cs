@@ -5,7 +5,7 @@ namespace OtusBasic1.Project.Infrastructure.DataAccess;
 
 public class InMemoryUserRepository : IUserRepository
 {
-    private readonly List<ToDoUser> _users = new();
+    private readonly List<ToDoUser?> _users = new();
     
     public Task<ToDoUser?> GetUser(Guid userId, CancellationToken ct)
     {
@@ -19,7 +19,7 @@ public class InMemoryUserRepository : IUserRepository
         return Task.FromResult(result);
     }
 
-    public Task Add(ToDoUser user, CancellationToken ct)
+    public Task Add(ToDoUser? user, CancellationToken ct)
     {
         _users.Add(user);
         return Task.CompletedTask;
