@@ -1,5 +1,7 @@
 ﻿using System.Runtime.Serialization;
 
+namespace OtusBasic1.Project.Core.Exceptions;
+
 [Serializable]
 public class TaskCountLimitException : Exception
 {

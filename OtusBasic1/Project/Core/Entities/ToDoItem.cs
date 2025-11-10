@@ -1,4 +1,4 @@
-﻿namespace OtusBasic1;
+﻿namespace OtusBasic1.Project.Core.Entities;
 
 public class ToDoItem
 {
@@ -17,6 +17,16 @@ public class ToDoItem
         Init();
     }
 
+    public ToDoItem(ToDoItem item)
+    {
+        Id = item.Id;
+        User = item.User;
+        Name = item.Name;
+        CreatedAt = item.CreatedAt;
+        State = item.State;
+        StateChangedAt = item.StateChangedAt;
+    }
+
     private void Init()
     {
         Id = Guid.NewGuid();
@@ -28,5 +38,10 @@ public class ToDoItem
     {
         StateChangedAt = DateTime.UtcNow;
         State = ToDoItemState.Completed;
+    }
+
+    public ToDoItem Copy()
+    {
+        return new ToDoItem(this);
     }
 }
