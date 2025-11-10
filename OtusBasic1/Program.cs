@@ -10,7 +10,11 @@ using Telegram.Bot.Types.Enums;
 
 string version = "0.0.5";
 string dateOfCreation = DateTime.Today.ToString("dd.MM.yyyy");
-string token = "8344142896:AAGARJ3TW5pHIqVdlGslqhOcKTr-ne51TUw";
+string token = Environment.GetEnvironmentVariable("TELEGRAM_BOT_TOKEN");
+
+if(string.IsNullOrWhiteSpace(token))
+    throw new ApplicationException("Telegram bot token environment variable is missing.");
+
 using var cts = new CancellationTokenSource();
 ITelegramBotClient botClient = new TelegramBotClient(token);
 IUserRepository userRepository = new InMemoryUserRepository();
