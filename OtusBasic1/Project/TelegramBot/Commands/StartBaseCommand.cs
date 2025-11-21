@@ -20,7 +20,8 @@ public class StartBaseCommand : BaseCommand
     {
         if (user == null)
         {
-            user = await _userService.RegisterUser(update.Message.From.Id, update.Message.From.Username ?? "User", cancellationToken);
+            await _userService.RegisterUser(update.Message.From.Id, update.Message.From.Username ?? "User", cancellationToken);
+            user = await _userService.GetUser(update.Message.From.Id, cancellationToken);
             
             var markup = await GetCurrentTasksKeyboard(user, update, cancellationToken);
             await botClient.SendMessage(update.Message.Chat,
